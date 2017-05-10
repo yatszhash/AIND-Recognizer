@@ -5,6 +5,8 @@ import warnings
 import numpy as np
 from hmmlearn.hmm import GaussianHMM
 from sklearn.model_selection import KFold
+
+import asl_utils
 from asl_utils import combine_sequences
 
 
@@ -77,7 +79,34 @@ class SelectorBIC(ModelSelector):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         # TODO implement model selection based on BIC scores
-        raise NotImplementedError
+
+
+        best_model = None
+        best_score = float('-inf')
+
+        hyper_paramaters = range(self.min_n_components, self.max_n_components + 1)
+
+
+        for n_components in hyper_paramaters:
+            try:
+                current_model = GaussianHMM(n_components=n_components, n_iter=1000).fit(self.X, self.lengths)
+
+                l = current_model.score(self.X, self.lengths)
+                #current_score = self.bic(l,  ,len(self.X))
+                current_score = 0
+
+                if current_score > best_score:
+                    best_model = current_model
+                    best_score = current_score
+            except:
+                if self.verbose:
+                    print("failure on {} with {} states".format(self.this_word, n_components))
+
+        return best_model
+
+    @staticmethod
+    def bic(l, p, n):
+        return -2 * np.log(l) + p * np.log(n)
 
 
 class SelectorDIC(ModelSelector):
@@ -104,5 +133,32 @@ class SelectorCV(ModelSelector):
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # TODO implement model selection using CV
-        raise NotImplementedError
+        best_model = None
+        best_score = float('-inf')
+
+        hyper_paramaters = range(self.min_n_components, self.max_n_components + 1)
+
+        n_split = 3
+        if n_split > len(self.sequences):
+            n_split = len(self.sequences)
+        kfold = KFold(n_split, random_state=self.random_state)
+        train, test = next(kfold.split(self.sequences))
+
+        train_X, train_lengths = asl_utils.combine_sequences(train, self.sequences)
+        test_X, test_lengths = asl_utils.combine_sequences(test, self.sequences)
+
+        for n_components in hyper_paramaters:
+            try:
+                current_model = GaussianHMM(n_components=n_components, n_iter=1000)\
+                    .fit(train_X, train_lengths)
+
+                current_score = current_model.score(test_X, test_lengths)
+
+                if current_score > best_score:
+                    best_model = current_model
+                    best_score = current_score
+            except:
+                if self.verbose:
+                    print("failure on {} with {} states".format(self.this_word, n_components))
+
+        return best_model
