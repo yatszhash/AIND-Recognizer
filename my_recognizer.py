@@ -44,4 +44,5 @@ def get_predict_proba(models:dict, test_set:SinglesData, item:int):
     return  prob_words
 
 def sort_and_extract(liklihood_dict: dict):
-    return max(liklihood_dict.keys(), key=lambda key: (liklihood_dict[key] is None, liklihood_dict[key]))
+    return max(filter(lambda key: liklihood_dict[key] is not None, liklihood_dict.keys()),
+           key=lambda key: liklihood_dict[key])
