@@ -82,20 +82,18 @@ class SelectorBIC(ModelSelector):
 
 
         best_model = None
-        best_score = float('-inf')
+        best_score = float('inf')
 
-        hyper_paramaters = range(self.min_n_components, self.max_n_components + 1)
+        hyper_parameters = range(self.min_n_components, self.max_n_components + 1)
 
 
-        for n_components in hyper_paramaters:
+        for n_components in hyper_parameters:
             try:
                 current_model = GaussianHMM(n_components=n_components, n_iter=1000).fit(self.X, self.lengths)
 
                 l = current_model.score(self.X, self.lengths)
-                #current_score = self.bic(l,  ,len(self.X))
-                current_score = 0
-
-                if current_score > best_score:
+                current_score = self.bic(l, n_components, len(self.X[0]) ,len(self.lengths))
+                if current_score < best_score:
                     best_model = current_model
                     best_score = current_score
             except:
@@ -105,8 +103,15 @@ class SelectorBIC(ModelSelector):
         return best_model
 
     @staticmethod
-    def bic(l, p, n):
-        return -2 * np.log(l) + p * np.log(n)
+    def bic(l, n_states, n_features, n_data):
+
+        # because of left to right state transition
+        n_transition = n_states - 1
+
+        # because of diagonal covariance
+        n_emission = 2 * n_states * n_features
+
+        return -2 * l+ (n_transition + n_emission )* np.log(n_data)
 
 
 class SelectorDIC(ModelSelector):
@@ -121,9 +126,40 @@ class SelectorDIC(ModelSelector):
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # TODO implement model selection based on DIC scores
-        raise NotImplementedError
 
+        best_model = None
+        best_score = float('-inf')
+
+        hyper_parameters = range(self.min_n_components, self.max_n_components + 1)
+
+
+        for n_components in hyper_parameters:
+            try:
+                current_model = GaussianHMM(n_components=n_components, n_iter=1000).fit(self.X, self.lengths)
+
+                current_score = self.dic(current_model)
+
+                if current_score > best_score:
+                    best_score = current_score
+                    best_model = current_model
+
+            except:
+                if self.verbose:
+                    print("failure on {} with {} states".format(self.this_word, n_components))
+
+
+        return best_model
+
+    def dic(self, model):
+        l = model.score(self.X, self.lengths)
+
+        all_scores = [model.score(self.hwords[word][0], self.hwords[word][1])
+                      for word in self.words if word != self.this_word]
+
+        anti_l = sum(all_scores) \
+                 / (len(self.words) - 1)
+
+        return l - anti_l
 
 class SelectorCV(ModelSelector):
     ''' select best model based on average log Likelihood of cross-validation folds

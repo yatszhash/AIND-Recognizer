@@ -1,4 +1,5 @@
 import warnings
+
 from asl_data import SinglesData
 
 
@@ -18,8 +19,29 @@ def recognize(models: dict, test_set: SinglesData):
            ['WORDGUESS0', 'WORDGUESS1', 'WORDGUESS2',...]
    """
     warnings.filterwarnings("ignore", category=DeprecationWarning)
-    probabilities = []
-    guesses = []
-    # TODO implement the recognizer
-    # return probabilities, guesses
-    raise NotImplementedError
+    probabilities = [get_predict_proba(models, test_set, item) for item in range(test_set.num_items)]
+
+    guesses = [sort_and_extract(liklihood_list) for liklihood_list in probabilities]
+
+    return probabilities, guesses
+
+
+def get_predict_proba(models:dict, test_set:SinglesData, item:int):
+    prob_words = {}
+
+    for word, model in models.items():
+        prob = None
+
+        try:
+            prob=model.score(
+                *test_set.get_item_Xlengths(item))
+        except:
+            #print("failure on {} model with data No {}".format(word, item))
+            pass
+
+        prob_words[word] = prob
+
+    return  prob_words
+
+def sort_and_extract(liklihood_dict: dict):
+    return sorted(liklihood_dict.keys(), key=lambda key: (liklihood_dict[key] is None, liklihood_dict[key]))
