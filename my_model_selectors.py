@@ -175,10 +175,16 @@ class SelectorCV(ModelSelector):
         hyper_paramaters = range(self.min_n_components, self.max_n_components + 1)
 
         n_split = 3
+
         if n_split > len(self.sequences):
             n_split = len(self.sequences)
-        kfold = KFold(n_split, random_state=self.random_state)
-        train, test = next(kfold.split(self.sequences))
+
+        if n_split > 1:
+            kfold = KFold(n_split, random_state=self.random_state)
+            train, test = next(kfold.split(self.sequences))
+        else:
+            train = [0]
+            test = [0]
 
         train_X, train_lengths = asl_utils.combine_sequences(train, self.sequences)
         test_X, test_lengths = asl_utils.combine_sequences(test, self.sequences)
