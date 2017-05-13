@@ -86,7 +86,8 @@ class SelectorBIC(ModelSelector):
 
         for n_components in hyper_parameters:
             try:
-                current_model = GaussianHMM(n_components=n_components, n_iter=1000).fit(self.X, self.lengths)
+                current_model = GaussianHMM(n_components=n_components, covariance_type="diag", n_iter=1000,
+                                    random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
 
                 l = current_model.score(self.X, self.lengths)
 
@@ -134,7 +135,8 @@ class SelectorDIC(ModelSelector):
 
         for n_components in hyper_parameters:
             try:
-                current_model = GaussianHMM(n_components=n_components, n_iter=1000).fit(self.X, self.lengths)
+                current_model = GaussianHMM(n_components=n_components, covariance_type="diag", n_iter=1000,
+                                    random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
 
                 current_score = self.dic(current_model)
 
@@ -187,7 +189,8 @@ class SelectorCV(ModelSelector):
 
         for n_components in hyper_paramaters:
             try:
-                current_model = GaussianHMM(n_components=n_components, n_iter=1000)\
+                current_model = GaussianHMM(n_components=n_components, covariance_type="diag", n_iter=1000,
+                                    random_state=self.random_state, verbose=False)\
                     .fit(train_X, train_lengths)
 
                 current_score = current_model.score(test_X, test_lengths)
