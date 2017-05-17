@@ -91,7 +91,9 @@ class SelectorBIC(ModelSelector):
 
                 l = current_model.score(self.X, self.lengths)
 
+                # - is to reverse the result of the comparation
                 current_score = - self.bic(l, n_components, len(self.X[0]) ,len(self.lengths))
+
                 if current_score > best_score:
                     best_model = current_model
                     best_score = current_score
@@ -172,34 +174,57 @@ class SelectorCV(ModelSelector):
 
         best_model = None
         best_score = float('-inf')
+        best_n_comp = 0
 
         hyper_paramaters = range(self.min_n_components, self.max_n_components + 1)
 
         n_split = 3
 
-        if n_split < len(self.sequences):
-            kfold = KFold(n_split, random_state=self.random_state)
-            train, test = next(kfold.split(self.sequences))
-        else:
-            train = range(len(self.sequences))
-            test = range(len(self.sequences))
-
-        train_X, train_lengths = asl_utils.combine_sequences(train, self.sequences)
-        test_X, test_lengths = asl_utils.combine_sequences(test, self.sequences)
-
         for n_components in hyper_paramaters:
             try:
-                current_model = GaussianHMM(n_components=n_components, covariance_type="diag", n_iter=1000,
+                if n_split > len(self.sequences):
+                    current_model = GaussianHMM(n_components=n_components, covariance_type="diag", n_iter=1000,
+                                                random_state=self.random_state, verbose=False) \
+                                    .fit(self.X, self.lengths)
+                    current_score = current_model.score(self.X, self.lengths)
+
+                    if current_score > best_score:
+                        best_model = current_model
+                        best_score = current_score
+
+                else:
+                    kfold = KFold(n_split, random_state=self.random_state)
+
+                    temp_scores = []
+
+                    for train, test in kfold.split(self.sequences):
+                        train_X, train_lengths = asl_utils.combine_sequences(train, self.sequences)
+                        test_X, test_lengths = asl_utils.combine_sequences(test, self.sequences)
+
+                        temp_model = GaussianHMM(n_components=n_components, covariance_type="diag", n_iter=1000,
                                     random_state=self.random_state, verbose=False)\
-                    .fit(train_X, train_lengths)
+                        .fit(train_X, train_lengths)
 
-                current_score = current_model.score(test_X, test_lengths)
+                        temp_scores.append(temp_model.score(test_X, test_lengths))
 
-                if current_score > best_score:
-                    best_model = current_model
-                    best_score = current_score
+                    current_score = np.average(temp_scores)
+
+                    if current_score > best_score:
+                        best_n_comp = n_components
+                        best_score = current_score
+
             except:
                 if self.verbose:
                     print("failure on {} with {} states".format(self.this_word, n_components))
+
+        if n_split <= len(self.sequences) and best_n_comp > 0:
+            try:
+                best_model = GaussianHMM(n_components=best_n_comp, covariance_type="diag", n_iter=1000,
+                                    random_state=self.random_state, verbose=False)\
+                        .fit(self.X, self.lengths)
+
+            except:
+                if self.verbose:
+                    print("failure on {} with {} states".format(self.this_word, best_n_comp))
 
         return best_model
