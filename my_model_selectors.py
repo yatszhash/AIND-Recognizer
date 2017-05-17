@@ -79,7 +79,7 @@ class SelectorBIC(ModelSelector):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         best_model = None
-        best_score = float('-inf')
+        best_score = float('inf')
 
         hyper_parameters = range(self.min_n_components, self.max_n_components + 1)
 
@@ -91,10 +91,9 @@ class SelectorBIC(ModelSelector):
 
                 l = current_model.score(self.X, self.lengths)
 
-                # - is to reverse the result of the comparation
-                current_score = - self.bic(l, n_components, len(self.X[0]) ,len(self.lengths))
+                current_score = self.bic(l, n_components, len(self.X[0]) ,len(self.lengths))
 
-                if current_score > best_score:
+                if current_score < best_score:
                     best_model = current_model
                     best_score = current_score
 
@@ -104,16 +103,20 @@ class SelectorBIC(ModelSelector):
 
         return best_model
 
-    @staticmethod
-    def bic(l, n_states, n_features, n_data):
+    def bic(self, l, n_states, n_features, n_data):
 
-        # because of left to right state transition
-        n_transition = n_states - 1
+        # number of transition probabilities
+        n_transition = n_states * (n_states - 1)
 
-        # because of diagonal covariance
+        # number of start state
+        n_start = n_states - 1
+
+        # number of mean and diagonal covariance for emission probabilities
         n_emission = 2 * n_states * n_features
 
-        return -2 * l+ (n_transition + n_emission )* np.log(n_data)
+        n_params = n_transition + n_start +  n_emission
+
+        return -2 * l+ (n_params)* np.log(n_data)
 
 
 class SelectorDIC(ModelSelector):
