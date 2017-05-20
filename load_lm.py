@@ -15,7 +15,7 @@ class LanguageModel:
             raise ValueError("{} gram model does not exist".format(ngram))
 
         if words not in self.ngrams[ngram]:
-            return 0
+            return None
 
         return self.ngrams[ngram][words]
 
