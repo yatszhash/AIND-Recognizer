@@ -9,7 +9,7 @@ from asl_data import AslDb
 from hmm_ngram import OldHmmNgramRecognizer
 from load_lm import LanguageModel
 
-
+@DeprecationWarning
 class TestHmmNgramRecognizer(TestCase):
 
     def test_recognize_tri(self):
