@@ -89,7 +89,7 @@ class SelectorBIC(ModelSelector):
                 current_model = GaussianHMM(n_components=n_components, covariance_type="diag", n_iter=1000,
                                     random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
 
-                l = current_model.score(self.X, self.lengths)
+                l = current_model.calc_score(self.X, self.lengths)
 
                 current_score = self.bic(l, n_components, len(self.X[0]) ,len(self.lengths))
 
@@ -157,9 +157,9 @@ class SelectorDIC(ModelSelector):
         return best_model
 
     def dic(self, model):
-        l = model.score(self.X, self.lengths)
+        l = model.calc_score(self.X, self.lengths)
 
-        all_scores = [model.score(self.hwords[word][0], self.hwords[word][1])
+        all_scores = [model.calc_score(self.hwords[word][0], self.hwords[word][1])
                       for word in self.words if word != self.this_word]
 
         anti_l = sum(all_scores) \
@@ -189,7 +189,7 @@ class SelectorCV(ModelSelector):
                     current_model = GaussianHMM(n_components=n_components, covariance_type="diag", n_iter=1000,
                                                 random_state=self.random_state, verbose=False) \
                                     .fit(self.X, self.lengths)
-                    current_score = current_model.score(self.X, self.lengths)
+                    current_score = current_model.calc_score(self.X, self.lengths)
 
                     if current_score > best_score:
                         best_model = current_model
@@ -208,7 +208,7 @@ class SelectorCV(ModelSelector):
                                     random_state=self.random_state, verbose=False)\
                         .fit(train_X, train_lengths)
 
-                        temp_scores.append(temp_model.score(test_X, test_lengths))
+                        temp_scores.append(temp_model.calc_score(test_X, test_lengths))
 
                     current_score = np.average(temp_scores)
 

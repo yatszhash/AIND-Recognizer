@@ -33,7 +33,7 @@ def get_predict_proba(models:dict, test_set:SinglesData, item:int):
         prob = None
 
         try:
-            prob=model.score(
+            prob=model.calc_score(
                 *test_set.get_item_Xlengths(item))
         except:
             #print("failure on {} model with data No {}".format(word, item))
