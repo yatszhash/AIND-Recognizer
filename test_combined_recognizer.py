@@ -1,5 +1,7 @@
 import unittest
 
+import math
+
 from combined_recognizer import CombinedRecognizer
 
 
@@ -119,9 +121,9 @@ class TestCombinedRecognizer(unittest.TestCase):
             ("Two", "Two", "Two"): -15,
 
             # end
-            ("One", "Two", CombinedRecognizer.EOS): -20,
-            ("Two", "One", CombinedRecognizer.EOS): -21,
-            ("One", "One", CombinedRecognizer.EOS): -22,
+            ("One", "One", CombinedRecognizer.EOS): -20,
+            ("One", "Two", CombinedRecognizer.EOS): -21,
+            ("Two", "One", CombinedRecognizer.EOS): -22,
             ("Two", "Two", CombinedRecognizer.EOS): -23
         }
 
@@ -137,6 +139,51 @@ class TestCombinedRecognizer(unittest.TestCase):
         # (BOS, One, Two, One, Two)
         self.assertEqual(sut.get_best_score_at(2, 5),
                          (2, -1 + 0 + -2))
+
+        # (BOS, One, Two, One, Two, EOS)
+        self.assertEqual(sut.get_best_score_at(2, 5),
+                         (2, -1 + 0 + -2))
+
+        self.assertEqual(sut.whole_best_score, -1 + 0 + -2 + -21)
+        self.assertEqual(sut.whole_best_last_id_in_layer,
+                         1)
+
+    def test_fetch_best_sequence(self):
+        words = ["1", "2", "3"]
+        
+        sut = CombinedRecognizer(words, {})
+
+        sut.initialize_nodes(["a", "a", "a", "a", "a"])
+
+        expected_words = ["BOS", "1", "2", "3", "2", "3", "EOS"]
+
+        expected_path = [self.calc_id_in_layer_from_words(expected_words[id: id+3], 3)
+                         for id, _ in enumerate(expected_words[:-2])]
+
+        sut.best_parents = [[-999] * len(layer) for layer in sut.possible_tokens]
+
+        assert len(expected_path) == len(sut.possible_tokens)
+        sut.best_parents[0][expected_path[0]] = None
+        for layer_id, id_in_layer in enumerate(expected_path[:-1]):
+            sut.best_parents[layer_id + 1][expected_path[layer_id + 1]] = id_in_layer
+
+        sut.whole_best_last_id_in_layer = expected_path[-1]
+
+        self.assertEqual(sut.fetch_best_sequence(), expected_words[1:-1])
+
+    def calc_id_in_layer_from_words(self, words, all_word_num):
+        assert len(words) == 3
+
+        if words[0] == "BOS":
+            return (int(words[1]) - 1) * all_word_num + int(words[2]) - 1
+
+        if words[-1] == "EOS":
+            return (int(words[0]) - 1) * all_word_num + int(words[1]) - 1
+
+        return (int(words[0]) - 1) * all_word_num * all_word_num \
+               + (int(words[1]) - 1) * all_word_num \
+               + int(words[2]) - 1
+        
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,4 +1,4 @@
-
+from collections import deque
 from itertools import product
 import numpy as np
 
@@ -14,9 +14,13 @@ class CombinedRecognizer(object):
         self.words = words
         self.ngram_probs = ngram_probs
 
+        # working variables
         self.best_scores = None
         self.best_parents = None
         self.parents = None
+        self.whole_best_score = None
+
+        self.whole_best_last_id_in_layer = None
 
     def initialize_nodes(self, seq: list):
         self.initialize_possible_tokens(len(seq))
@@ -94,6 +98,9 @@ class CombinedRecognizer(object):
                     for id_in_layer, _ in enumerate(layer)
                 ])
 
+        self.whole_best_score = max(self.best_scores[-1])
+        self.whole_best_last_id_in_layer = np.argmax(self.best_scores[-1])
+
     def find_accumulate_best_score(self, layer_id, id_in_layer):
         assert len(self.best_scores) == layer_id
         parents_scores = self.get_parents_best_score(layer_id, id_in_layer)
@@ -111,3 +118,20 @@ class CombinedRecognizer(object):
 
     def get_best_score_at(self, layer_id, id_in_layer):
         return self.best_parents[layer_id][id_in_layer], self.best_scores[layer_id][id_in_layer]
+
+    def fetch_best_sequence(self):
+        best_path = deque()
+
+        parent = self.whole_best_last_id_in_layer
+        for layer in reversed(self.best_parents):
+            if not parent:
+                break
+            best_path.appendleft(parent)
+            parent = layer[parent]
+
+        assert len(best_path) == len(self.possible_tokens)
+        return self.id_seq_to_words(best_path)
+
+    def id_seq_to_words(self, id_seq):
+        return [self.possible_tokens[layer_id][id_in_layer][1]
+                for layer_id, id_in_layer in enumerate(id_seq)]
