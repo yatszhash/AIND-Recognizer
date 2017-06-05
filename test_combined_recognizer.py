@@ -8,7 +8,7 @@ class TestCombinedRecognizer(unittest.TestCase):
     def test_initialize_possible_tokens(self):
 
         words = ["One", "Two"]
-        sut = CombinedRecognizer(words)
+        sut = CombinedRecognizer(words, {})
 
         sut.initialize_possible_tokens(4)
 
@@ -60,7 +60,7 @@ class TestCombinedRecognizer(unittest.TestCase):
 
         sut.initialize_possible_tokens(4)
 
-        sut.initialize_parents()
+        sut.initialize_all_parents()
 
         self.assertListEqual(
             [len(layer) for layer in sut.parents],
@@ -126,11 +126,17 @@ class TestCombinedRecognizer(unittest.TestCase):
         }
 
         sut = CombinedRecognizer(words, ngram_liklihoods)
-        sut.initialize_possible_tokens(4)
 
-        self.assertEqual(sut.get_best_score_at(0, 2), -2)
+        sut.initialize_nodes(["a", "a", "a", "a"])
+
+        sut.accumulate_best_scores()
+        self.assertEqual(sut.get_best_score_at(0, 2), (None, -2))
+
+        self.assertEqual(sut.possible_tokens[2][5], ("Two", "One", "Two"))
+
+        # (BOS, One, Two, One, Two)
         self.assertEqual(sut.get_best_score_at(2, 5),
-                         -3 + 0 + -2)
+                         (2, -1 + 0 + -2))
 
 if __name__ == '__main__':
     unittest.main()
